@@ -5,9 +5,18 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/kiganoakuma/pokedexcli/internal/pokeapi"
 )
 
-func startRepl() {
+type config struct {
+	pokeapiClient    pokeapi.Client
+	pokedex          Pokedex
+	nextLocationsURL *string
+	prevLocationsURL *string
+}
+
+func startRepl(cfg *config) {
 	reader := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("Pokedex > ")
@@ -19,10 +28,14 @@ func startRepl() {
 		}
 
 		commandName := words[0]
+		args := []string{}
+		if len(words) > 1 {
+			args = words[1:]
+		}
 
 		command, exists := getCommands()[commandName]
 		if exists {
-			err := command.callback()
+			err := command.callback(cfg, args...)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -43,11 +56,41 @@ func cleanInput(text string) []string {
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	callback    func(*config, ...string) error
 }
 
 func getCommands() map[string]cliCommand {
 	return map[string]cliCommand{
+		"catch": {
+			name:        "catch <pokemon_name>",
+			description: "Attempt to catch Pokemon",
+			callback:    commandCatch,
+		},
+		"map": {
+			name:        "map",
+			description: "Get the next page of locations",
+			callback:    commandMap,
+		},
+		"explore": {
+			name:        "explore <location_name>",
+			description: "Explore a location",
+			callback:    commandExplore,
+		},
+		"mapb": {
+			name:        "mapb",
+			description: "Get the previous page of locations",
+			callback:    commandMapb,
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "display contents of pokedex",
+			callback:    commandPokedex,
+		},
+		"inspect": {
+			name:        "inspect <pokemon_name",
+			description: "inpect Pokemon in Pokedex",
+			callback:    commandInpect,
+		},
 		"help": {
 			name:        "help",
 			description: "Displays a help message",
